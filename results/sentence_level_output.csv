@@ -1,0 +1,59 @@
+answer_id,question,evidence_query,sentence_id,sentence
+1,Who developed the theory of relativity?,Albert Einstein,1,Albert Einstein developed the theory of relativity.
+1,Who developed the theory of relativity?,Albert Einstein,2,He was born in Germany.
+1,Who developed the theory of relativity?,Albert Einstein,3,He won the Nobel Prize in Physics in 1921.
+2,What is the capital of France?,Paris,1,The capital of France is Paris.
+2,What is the capital of France?,Paris,2,Paris is located in northern France.
+2,What is the capital of France?,Paris,3,It is known for the Eiffel Tower.
+3,Who wrote Hamlet?,Hamlet,1,Hamlet was written by William Shakespeare.
+3,Who wrote Hamlet?,Hamlet,2,Shakespeare was an English playwright.
+3,Who wrote Hamlet?,Hamlet,3,Hamlet is one of his most famous tragedies.
+4,What planet is known as the Red Planet?,Mars,1,Mars is known as the Red Planet.
+4,What planet is known as the Red Planet?,Mars,2,It appears reddish because of iron oxide on its surface.
+4,What planet is known as the Red Planet?,Mars,3,Mars is the largest planet in the solar system.
+5,Who was the first president of the United States?,George Washington,1,George Washington was the first president of the United States.
+5,Who was the first president of the United States?,George Washington,2,He served from 1789 to 1797.
+5,Who was the first president of the United States?,George Washington,3,He was also a military leader during the American Revolution.
+6,Who painted the Mona Lisa?,Leonardo da Vinci,1,The Mona Lisa was painted by Leonardo da Vinci.
+6,Who painted the Mona Lisa?,Leonardo da Vinci,2,Leonardo da Vinci was an Italian artist and inventor.
+6,Who painted the Mona Lisa?,Leonardo da Vinci,3,He was born in Spain.
+7,What is the largest planet in the Solar System?,Jupiter,1,Jupiter is the largest planet in the Solar System.
+7,What is the largest planet in the Solar System?,Jupiter,2,It is a gas giant.
+7,What is the largest planet in the Solar System?,Jupiter,3,Jupiter is smaller than Earth.
+8,Who developed the World Wide Web?,Tim Berners-Lee,1,Tim Berners-Lee developed the World Wide Web.
+8,Who developed the World Wide Web?,Tim Berners-Lee,2,He is a British computer scientist.
+8,Who developed the World Wide Web?,Tim Berners-Lee,3,The World Wide Web was created in the nineteenth century.
+9,What is the tallest mountain above sea level?,Mount Everest,1,Mount Everest is the tallest mountain above sea level.
+9,What is the tallest mountain above sea level?,Mount Everest,2,It is located in the Himalayas.
+9,What is the tallest mountain above sea level?,Mount Everest,3,Mount Everest is located in South America.
+10,What is DNA?,DNA,1,DNA stands for deoxyribonucleic acid.
+10,What is DNA?,DNA,2,It carries genetic information in living organisms.
+10,What is DNA?,DNA,3,DNA is made of amino acids.
+11,Who wrote Pride and Prejudice?,Pride and Prejudice,1,Pride and Prejudice was written by Jane Austen.
+11,Who wrote Pride and Prejudice?,Pride and Prejudice,2,It was first published in 1813.
+11,Who wrote Pride and Prejudice?,Pride and Prejudice,3,The novel was written by William Shakespeare.
+12,What is the currency of Japan?,Japanese yen,1,The currency of Japan is the yen.
+12,What is the currency of Japan?,Japanese yen,2,The yen is the official currency of Japan.
+12,What is the currency of Japan?,Japanese yen,3,Japan uses the euro as its official currency.
+13,What organ pumps blood through the human body?,Heart,1,The heart pumps blood through the human body.
+13,What organ pumps blood through the human body?,Heart,2,It is part of the circulatory system.
+13,What organ pumps blood through the human body?,Heart,3,The kidneys are mainly responsible for pumping blood.
+14,What is the speed of light?,Speed of light,1,"The speed of light in vacuum is about 299,792,458 meters per second."
+14,What is the speed of light?,Speed of light,2,It is commonly represented by the symbol c. Light travels slower than sound in vacuum.
+15,Who discovered penicillin?,Alexander Fleming,1,Alexander Fleming discovered penicillin in 1928.
+15,Who discovered penicillin?,Alexander Fleming,2,Penicillin became an important antibiotic.
+15,Who discovered penicillin?,Alexander Fleming,3,Fleming was born in Scotland.
+16,What is photosynthesis?,Photosynthesis,1,Photosynthesis is the process plants use to make food.
+16,What is photosynthesis?,Photosynthesis,2,It uses light energy to convert carbon dioxide and water into sugars.
+16,What is photosynthesis?,Photosynthesis,3,Photosynthesis mainly happens in animals.
+17,Where is the Great Pyramid of Giza located?,Great Pyramid of Giza,1,The Great Pyramid of Giza is located in Egypt.
+17,Where is the Great Pyramid of Giza located?,Great Pyramid of Giza,2,It is part of the Giza pyramid complex.
+17,Where is the Great Pyramid of Giza located?,Great Pyramid of Giza,3,It was built in modern-day China.
+18,Who proposed the laws of motion?,Isaac Newton,1,Isaac Newton proposed the laws of motion.
+18,Who proposed the laws of motion?,Isaac Newton,2,He was an English mathematician and physicist.
+18,Who proposed the laws of motion?,Isaac Newton,3,Newton was born in Germany.
+19,What is the chemical formula of water?,Water,1,The chemical formula of water is H2O. Water is made of hydrogen and oxygen.
+19,What is the chemical formula of water?,Water,2,Water is mainly composed of carbon dioxide.
+20,What is the largest ocean on Earth?,Pacific Ocean,1,The Pacific Ocean is the largest ocean on Earth.
+20,What is the largest ocean on Earth?,Pacific Ocean,2,It covers more area than any other ocean.
+20,What is the largest ocean on Earth?,Pacific Ocean,3,The Atlantic Ocean is larger than the Pacific Ocean.

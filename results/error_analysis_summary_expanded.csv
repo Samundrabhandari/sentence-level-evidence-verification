@@ -1,0 +1,6 @@
+error_category,count
+Contradiction missed / topical overlap,9
+Evidence incomplete / retrieval limitation,8
+Pronoun/coreference problem,5
+Subjective claim / evidence limitation,1
+Sentence splitting / mixed claim,1
