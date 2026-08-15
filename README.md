@@ -10,6 +10,39 @@ The goal is to study whether sentence-level verification can provide more precis
 
 ---
 
+## Key Results
+
+This project compares full-response verification with sentence-level verification.
+
+| Method | Unit | Examples | Accuracy | Correct | Errors |
+|---|---:|---:|---:|---:|---:|
+| Full-response semantic similarity baseline | Full response | 20 | 10.0% | 2 | 18 |
+| Sentence-level semantic similarity baseline | Sentence | 58 | 58.6% | 34 | 24 |
+
+The full-response baseline performed poorly because it judged entire answers at once and often missed partial errors inside otherwise topic-relevant responses.
+
+The sentence-level baseline provided more useful diagnostic information because it identified which specific sentences were unsupported or contradicted.
+
+![Method Accuracy Comparison](results/figures/method_accuracy_comparison.png)
+
+---
+
+## Error Analysis
+
+The largest failure mode was **contradiction missed / topical overlap**, where false claims were still semantically similar to the retrieved evidence because they shared the same topic words.
+
+| Error Category | Count | Percentage |
+|---|---:|---:|
+| Contradiction missed / topical overlap | 9 | 37.50% |
+| Evidence incomplete / retrieval limitation | 8 | 33.33% |
+| Pronoun/coreference problem | 5 | 20.83% |
+| Subjective claim / evidence limitation | 1 | 4.17% |
+| Sentence splitting / mixed claim | 1 | 4.17% |
+
+![Error Category Distribution](results/figures/error_category_distribution.png)
+
+---
+
 ## Research Question
 
 **How does sentence-level evidence verification compare with full-response verification for evaluating the factual reliability of AI-generated answers?**
