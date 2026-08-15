@@ -345,3 +345,39 @@ The report should include:
 12. Conclusion
 
 If time allows, a stronger Natural Language Inference method can be added later. However, the semantic similarity baseline already provides useful results and clear limitations.
+
+
+---
+
+# Full-Response Baseline Update
+
+## Date
+
+August 10, 2026
+
+I added a simple full-response semantic similarity baseline to compare sentence-level verification with full-response verification.
+
+The script created was:
+
+`src/full_response_baseline.py`
+
+The output files were:
+
+- `results/full_response_baseline_results.csv`
+- `results/full_response_evaluation_report.csv`
+- `results/full_response_confusion_matrix.csv`
+
+## Full-Response Baseline Result
+
+The full-response baseline was evaluated on 20 full AI-generated answers.
+
+Accuracy:
+
+`10.0%`
+
+Confusion matrix:
+
+```text
+                    Predicted Supported    Predicted Unsupported
+Actual Supported              2                     0
+Actual Unsupported           18                     0
