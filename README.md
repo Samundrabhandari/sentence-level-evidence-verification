@@ -8,25 +8,23 @@ Instead of judging an entire AI response as correct or incorrect, this project s
 
 The goal is to study whether sentence-level verification can provide more precise reliability feedback than full-response evaluation.
 
----
-
 ## Key Results
 
-This project compares full-response verification with sentence-level verification.
+This project compares three approaches for evaluating factual reliability in AI-generated answers:
 
 | Method | Unit | Examples | Accuracy | Correct | Errors |
 |---|---:|---:|---:|---:|---:|
 | Full-response semantic similarity baseline | Full response | 20 | 10.0% | 2 | 18 |
 | Sentence-level semantic similarity baseline | Sentence | 58 | 58.6% | 34 | 24 |
+| Sentence-level NLI verifier | Sentence | 58 | 79.3% | 46 | 12 |
 
 The full-response baseline performed poorly because it judged entire answers at once and often missed partial errors inside otherwise topic-relevant responses.
 
-The sentence-level baseline provided more useful diagnostic information because it identified which specific sentences were unsupported or contradicted.
+The sentence-level semantic similarity baseline improved diagnostic detail, but it still confused topical similarity with factual support.
+
+The sentence-level NLI verifier performed best because it directly evaluated whether the retrieved evidence supported, contradicted, or failed to prove each sentence-level claim.
 
 ![Method Accuracy Comparison](results/figures/method_accuracy_comparison.png)
-
----
-
 ## Error Analysis
 
 The largest failure mode was **contradiction missed / topical overlap**, where false claims were still semantically similar to the retrieved evidence because they shared the same topic words.
@@ -41,7 +39,20 @@ The largest failure mode was **contradiction missed / topical overlap**, where f
 
 ![Error Category Distribution](results/figures/error_category_distribution.png)
 
+
 ---
+
+## NLI Verifier Confusion Matrix
+
+The NLI verifier achieved 79.3% accuracy on 58 sentence-level examples.
+
+It correctly identified:
+
+- 30 out of 33 supported claims
+- 7 out of 13 unsupported claims
+- 9 out of 12 contradicted claims
+
+![NLI Confusion Matrix](results/figures/nli_confusion_matrix.png)
 
 ## Research Question
 
