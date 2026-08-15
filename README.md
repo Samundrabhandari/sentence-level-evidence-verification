@@ -433,3 +433,30 @@ This project shows that sentence-level verification can identify specific unreli
 However, the semantic similarity baseline alone is not sufficient for reliable factual verification because it often confuses topic similarity with factual support.
 
 A stronger verification system should combine better evidence retrieval with contradiction-aware models such as Natural Language Inference.
+
+---
+
+## Run the Interactive VeriClaim Demo
+
+This repository includes a Streamlit demo for evidence-grounded verification of LLM-generated claims.
+
+The demo allows a user to enter:
+
+- a question
+- an AI-generated answer
+- a Wikipedia evidence query
+
+The app then:
+
+1. splits the answer into sentence-level claims,
+2. retrieves Wikipedia evidence,
+3. runs Natural Language Inference verification,
+4. shows whether each claim is Supported, Contradicted, or has Insufficient Evidence,
+5. displays NLI confidence scores and semantic similarity scores.
+
+### Run the app
+
+From the main project folder, run:
+
+```bash
+python -m streamlit run app/app.py

@@ -4,3 +4,5 @@ requests
 sentence-transformers
 scikit-learn
 streamlit
+transformers
+torch
