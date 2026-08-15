@@ -1,0 +1,6 @@
+error_category,count,percentage
+Contradiction missed / topical overlap,9,37.5
+Evidence incomplete / retrieval limitation,8,33.33
+Pronoun/coreference problem,5,20.83
+Subjective claim / evidence limitation,1,4.17
+Sentence splitting / mixed claim,1,4.17

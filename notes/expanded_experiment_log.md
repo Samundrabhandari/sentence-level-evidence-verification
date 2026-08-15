@@ -611,3 +611,165 @@ The report should explain:
 5. What the evaluation results showed.
 6. What the error analysis revealed.
 7. Why stronger methods such as Natural Language Inference may be useful in future work.
+
+
+---
+
+# Final Verified Results Summary
+
+## Purpose of This Update
+
+After completing the expanded sentence-level experiment and adding the full-response baseline, I created final summary files to make the results easier to reproduce and report.
+
+The purpose of this step was to avoid manually copying metrics from different result files. Instead, the final comparison and error-analysis summaries were generated directly from the current experiment output files.
+
+---
+
+# Method Comparison
+
+I created a final method comparison script:
+
+`src/create_method_comparison.py`
+
+This script reads the current evaluation output files and creates:
+
+`results/method_comparison.csv`
+
+This file summarizes the verified current results for both the full-response baseline and the sentence-level baseline.
+
+## Verified Method Comparison Results
+
+```text
+Full-response semantic similarity baseline:
+- Unit: full response
+- Examples: 20
+- Correct predictions: 2
+- Errors: 18
+- Accuracy: 10.0%
+
+Sentence-level semantic similarity baseline:
+- Unit: sentence
+- Examples: 58
+- Correct predictions: 34
+- Errors: 24
+- Accuracy: 58.6%
+```
+
+## Interpretation
+
+The full-response baseline performed poorly because it predicted every full answer as Supported.
+
+This happened because most full AI-generated answers were topically similar to the retrieved Wikipedia evidence, even when one or more sentences inside the answer were unsupported or contradicted.
+
+The sentence-level baseline performed better and provided more detailed diagnostic information because it could identify individual unsupported or contradicted sentences inside a longer AI-generated answer.
+
+This supports the main research motivation: sentence-level verification is more useful than full-response verification for identifying specific factual reliability problems in AI-generated responses.
+
+---
+
+# Final Error Analysis Summary
+
+I created a final error analysis summary script:
+
+`src/create_final_error_summary.py`
+
+This script reads the labeled expanded error-analysis file:
+
+`results/error_analysis_candidates_labeled_expanded.csv`
+
+and creates:
+
+`results/final_error_analysis_summary.csv`
+
+The final error-analysis summary includes both error counts and percentages.
+
+## Final Error Category Results
+
+```text
+Total sentence-level errors: 24
+
+Contradiction missed / topical overlap: 9 errors, 37.50%
+Evidence incomplete / retrieval limitation: 8 errors, 33.33%
+Pronoun/coreference problem: 5 errors, 20.83%
+Subjective claim / evidence limitation: 1 error, 4.17%
+Sentence splitting / mixed claim: 1 error, 4.17%
+```
+
+---
+
+# Main Failure Mode
+
+The largest failure mode was:
+
+`Contradiction missed / topical overlap`
+
+This category accounted for:
+
+`9 out of 24 errors = 37.50%`
+
+This means the semantic similarity baseline often gave high similarity scores to false or contradicted claims because the claim and retrieved evidence were about the same topic.
+
+This confirms an important limitation of semantic similarity:
+
+```text
+Semantic similarity measures relatedness, but it does not reliably determine factual support or contradiction.
+```
+
+For example, a false claim about Jupiter may still appear highly similar to Wikipedia evidence about Jupiter because the same entity and related topic words appear in both texts.
+
+---
+
+# Secondary Failure Mode
+
+The second-largest failure mode was:
+
+`Evidence incomplete / retrieval limitation`
+
+This category accounted for:
+
+`8 out of 24 errors = 33.33%`
+
+This means that some errors were caused by limitations in the retrieved evidence, not only by the verifier itself.
+
+If the Wikipedia summary did not contain enough specific evidence, the system could not reliably determine whether a sentence was supported or contradicted.
+
+This shows that factual verification depends on both:
+
+1. evidence retrieval quality
+2. verification/classification quality
+
+A strong verifier can still fail if the retrieved evidence is incomplete, vague, or missing the relevant fact.
+
+---
+
+# Scientific Caution
+
+This project does not claim to determine absolute truth.
+
+The system evaluates whether an AI-generated sentence-level claim is supported, contradicted, or not sufficiently supported by the retrieved Wikipedia evidence.
+
+Wikipedia is treated as the selected evidence corpus, not as perfect ground truth.
+
+A sentence marked Unsupported or Insufficient Evidence should not automatically be interpreted as false. It means the retrieved evidence did not provide enough support for the claim.
+
+This distinction is important because factual verification is evidence-grounded, not truth-omniscient.
+
+---
+
+# Current Research Takeaway
+
+The final verified results show that sentence-level verification gives more useful diagnostic information than full-response verification.
+
+The full-response baseline achieved only 10.0% accuracy on 20 full answers because it failed to detect partial errors inside otherwise topic-relevant responses.
+
+The sentence-level baseline achieved 58.6% accuracy on 58 sentence-level examples and allowed detailed error analysis of unsupported and contradicted claims.
+
+The main limitation of the sentence-level semantic similarity baseline is that it often confuses topical similarity with factual support.
+
+Future improvements should focus on:
+
+1. stronger evidence retrieval
+2. contradiction-aware verification
+3. clearer distinction between Unsupported and Insufficient Evidence
+4. coreference handling for pronouns
+5. claim-level decomposition for sentences with multiple claims
