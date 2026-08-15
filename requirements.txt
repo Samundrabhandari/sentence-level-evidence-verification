@@ -6,3 +6,4 @@ scikit-learn
 streamlit
 transformers
 torch
+matplotlib
