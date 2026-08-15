@@ -773,3 +773,280 @@ Future improvements should focus on:
 3. clearer distinction between Unsupported and Insufficient Evidence
 4. coreference handling for pronouns
 5. claim-level decomposition for sentences with multiple claims
+
+---
+
+# NLI-Powered VeriClaim Web Demo Update
+
+## Date
+
+August 15, 2026
+
+## Purpose of This Update
+
+After completing the semantic similarity baseline and full-response baseline comparison, I added an interactive web demo for the project.
+
+The purpose of the demo is to make the research pipeline easier to understand and demonstrate. Instead of only showing CSV files and scripts, the demo allows a user to enter an AI-generated answer and see sentence-level evidence verification results.
+
+The demo is named:
+
+`VeriClaim`
+
+Full project name:
+
+`VeriClaim — Evidence-Grounded Verification for LLM-Generated Claims`
+
+---
+
+# Demo File Added
+
+The Streamlit demo was added in:
+
+`app/app.py`
+
+The required dependencies were updated in:
+
+`requirements.txt`
+
+The demo can be run with:
+
+```bash
+python -m streamlit run app/app.py
+```
+
+---
+
+# What the Demo Does
+
+The demo allows a user to enter:
+
+1. a question
+2. an AI-generated answer
+3. a Wikipedia evidence query
+
+The app then performs the following steps:
+
+```text
+User input
+↓
+Sentence splitting
+↓
+Wikipedia evidence retrieval
+↓
+Semantic similarity scoring
+↓
+Natural Language Inference verification
+↓
+Sentence-level verdicts
+↓
+Evidence and score display
+```
+
+The app displays each sentence-level claim separately and shows:
+
+* the claim text
+* the retrieved Wikipedia evidence
+* the NLI verdict
+* the NLI confidence score
+* the semantic similarity score
+* the raw NLI label
+
+---
+
+# Why Natural Language Inference Was Added
+
+The earlier demo used semantic similarity alone.
+
+However, semantic similarity created an important problem: it often confused topic similarity with factual support.
+
+For example, a false claim such as:
+
+```text
+Mount Everest is located in South America.
+```
+
+could receive a high semantic similarity score because the retrieved evidence also discusses Mount Everest and location-related information.
+
+This showed that semantic similarity alone is not enough for contradiction detection.
+
+To address this limitation, I added a Natural Language Inference model.
+
+The NLI model compares:
+
+```text
+Premise: retrieved Wikipedia evidence
+Hypothesis: sentence-level claim
+```
+
+and predicts whether the evidence:
+
+```text
+supports the claim
+contradicts the claim
+does not provide enough information
+```
+
+---
+
+# NLI Model Used
+
+The demo uses the following NLI model:
+
+`facebook/bart-large-mnli`
+
+The model outputs three possible NLI relationships:
+
+```text
+entailment
+contradiction
+neutral
+```
+
+These are mapped into project-level verdicts:
+
+```text
+entailment      → SUPPORTED
+contradiction   → CONTRADICTED
+neutral         → INSUFFICIENT EVIDENCE
+```
+
+---
+
+# Demo Verdict Labels
+
+The demo uses three main verdicts:
+
+## SUPPORTED
+
+The retrieved evidence appears to support the claim.
+
+## CONTRADICTED
+
+The retrieved evidence appears inconsistent with the claim.
+
+## INSUFFICIENT EVIDENCE
+
+The retrieved evidence does not clearly support or contradict the claim.
+
+---
+
+# Semantic Similarity vs NLI
+
+The app now uses semantic similarity as a diagnostic score, not as the main verdict.
+
+Semantic similarity answers:
+
+```text
+How related is this claim to the retrieved evidence?
+```
+
+Natural Language Inference answers:
+
+```text
+Does the evidence support, contradict, or fail to prove this claim?
+```
+
+This distinction is important because two texts can be highly similar while still contradicting each other.
+
+---
+
+# Demo Test Cases
+
+I tested the demo using several examples.
+
+## Mount Everest Example
+
+Input claim:
+
+```text
+Mount Everest is located in South America.
+```
+
+The semantic similarity score was still relatively high because the claim and evidence were about the same topic.
+
+However, the NLI model correctly labeled the claim as:
+
+```text
+CONTRADICTED
+```
+
+This showed that the NLI-powered demo fixes an important limitation of the similarity-only version.
+
+## Jupiter Example
+
+The app was also tested on the claim:
+
+```text
+Jupiter is smaller than Earth.
+```
+
+The earlier semantic similarity version incorrectly treated this as high evidence similarity because the evidence was about Jupiter.
+
+The NLI-powered version correctly identified the contradiction.
+
+## Alexander Graham Bell Example
+
+The app was tested on a new example that was not limited to the original CSV dataset.
+
+This confirmed that the demo can accept custom user input and run dynamically rather than only reading pre-existing dataset rows.
+
+---
+
+# Current Demo Capability
+
+The current demo can:
+
+* accept new user-entered examples
+* retrieve Wikipedia evidence dynamically
+* split AI-generated answers into sentence-level claims
+* use semantic similarity as a diagnostic score
+* use NLI for the main verification verdict
+* display Supported, Contradicted, and Insufficient Evidence labels
+* show evidence and model confidence for each claim
+
+This makes the project more interactive and easier to demonstrate to professors, recruiters, and interviewers.
+
+---
+
+# Scientific Caution
+
+The demo does not determine absolute truth.
+
+It evaluates whether an AI-generated claim is supported, contradicted, or not sufficiently supported by the retrieved Wikipedia evidence.
+
+Wikipedia is treated as the selected evidence corpus, not as perfect ground truth.
+
+If the retrieved evidence is incomplete, missing, or incorrect, the model verdict may also be unreliable.
+
+This distinction is important because the project is evidence-grounded verification, not truth-omniscient fact checking.
+
+---
+
+# Current Technical Status
+
+The project now includes:
+
+* sentence-level semantic similarity baseline
+* full-response semantic similarity baseline
+* verified method comparison table
+* final error analysis summary
+* NLI-powered Streamlit web demo
+* GitHub branches for stable research and demo development
+
+The NLI-powered demo has been pushed to the GitHub branch:
+
+`web-demo`
+
+---
+
+# Updated Research Takeaway
+
+The project now demonstrates a clear development path:
+
+1. A semantic similarity baseline was built first.
+2. Error analysis showed that semantic similarity often confuses topical similarity with factual support.
+3. A full-response baseline showed that judging entire answers can miss sentence-level errors.
+4. An NLI-powered demo was added to better detect support and contradiction at the claim level.
+
+This strengthens the project because it shows both research reasoning and applied AI engineering.
+
