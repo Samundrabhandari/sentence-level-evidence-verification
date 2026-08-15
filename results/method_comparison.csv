@@ -1,3 +1,4 @@
-method,unit,examples,correct_predictions,errors,accuracy,supported_precision,supported_recall,supported_f1,unsupported_precision,unsupported_recall,unsupported_f1,macro_precision,macro_recall,macro_f1,weighted_f1
-Full-response semantic similarity baseline,full_response,20,2,18,0.1,0.1,1.0,0.1818181818181818,0.0,0.0,0.0,0.05,0.5,0.0909090909090909,0.0181818181818181
-Sentence-level semantic similarity baseline,sentence,58,34,24,0.5862068965517241,0.5957446808510638,0.8484848484848485,0.7,0.5454545454545454,0.24,0.3333333333333333,0.5705996131528046,0.5442424242424242,0.5166666666666666,0.5419540229885057
+method,unit,examples,correct_predictions,errors,accuracy,supported_precision,supported_recall,supported_f1,unsupported_precision,unsupported_recall,unsupported_f1,contradicted_precision,contradicted_recall,contradicted_f1,macro_precision,macro_recall,macro_f1,weighted_f1
+Full-response semantic similarity baseline,full_response,20,2,18,0.1,0.1,1.0,0.1818181818181818,0.0,0.0,0.0,,,,0.05,0.5,0.0909090909090909,0.0181818181818181
+Sentence-level semantic similarity baseline,sentence,58,34,24,0.5862068965517241,0.5957446808510638,0.8484848484848485,0.7,0.5454545454545454,0.24,0.3333333333333333,,,,0.5705996131528046,0.5442424242424242,0.5166666666666666,0.5419540229885057
+Sentence-level NLI verifier,sentence,58,46,12,0.7931034482758621,0.9375,0.9090909090909092,0.9230769230769232,0.5384615384615384,0.5384615384615384,0.5384615384615384,0.6923076923076923,0.75,0.72,0.7227564102564102,0.7325174825174825,0.7271794871794871,0.7948541114058356

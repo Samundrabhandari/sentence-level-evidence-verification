@@ -9,8 +9,10 @@ import pandas as pd
 # -----------------------------
 method_file = "results/method_comparison.csv"
 error_file = "results/final_error_analysis_summary.csv"
+
 sentence_confusion_file = "results/confusion_matrix.csv"
 full_response_confusion_file = "results/full_response_confusion_matrix.csv"
+nli_confusion_file = "results/nli_confusion_matrix.csv"
 
 figures_dir = Path("results/figures")
 figures_dir.mkdir(parents=True, exist_ok=True)
@@ -23,7 +25,7 @@ def plot_confusion_matrix(confusion_df, title, output_path):
     """
     Create a labeled confusion matrix figure.
     """
-    fig, ax = plt.subplots(figsize=(7, 5))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
     values = confusion_df.values
     image = ax.imshow(values)
@@ -33,7 +35,7 @@ def plot_confusion_matrix(confusion_df, title, output_path):
     ax.set_ylabel("Actual Label")
 
     ax.set_xticks(range(len(confusion_df.columns)))
-    ax.set_xticklabels(confusion_df.columns, rotation=20, ha="right")
+    ax.set_xticklabels(confusion_df.columns, rotation=25, ha="right")
 
     ax.set_yticks(range(len(confusion_df.index)))
     ax.set_yticklabels(confusion_df.index)
@@ -63,11 +65,12 @@ method_df = pd.read_csv(method_file)
 method_labels = method_df["method"].replace({
     "Full-response semantic similarity baseline": "Full-response baseline",
     "Sentence-level semantic similarity baseline": "Sentence-level baseline",
+    "Sentence-level NLI verifier": "Sentence-level NLI verifier",
 })
 
 accuracy_percent = method_df["accuracy"] * 100
 
-plt.figure(figsize=(8, 5))
+plt.figure(figsize=(9, 5))
 plt.bar(method_labels, accuracy_percent)
 plt.ylabel("Accuracy (%)")
 plt.title("Method Accuracy Comparison")
@@ -85,6 +88,8 @@ plt.close()
 # Figure 2: Error category distribution
 # -----------------------------
 error_df = pd.read_csv(error_file)
+
+# Sort so largest category appears at the top
 error_df = error_df.sort_values("count", ascending=True)
 
 plt.figure(figsize=(10, 6))
@@ -102,13 +107,13 @@ plt.close()
 
 
 # -----------------------------
-# Figure 3: Sentence-level confusion matrix
+# Figure 3: Sentence-level semantic similarity confusion matrix
 # -----------------------------
 sentence_confusion_df = pd.read_csv(sentence_confusion_file, index_col=0)
 
 plot_confusion_matrix(
     confusion_df=sentence_confusion_df,
-    title="Sentence-Level Baseline Confusion Matrix",
+    title="Sentence-Level Similarity Baseline Confusion Matrix",
     output_path=figures_dir / "sentence_level_confusion_matrix.png",
 )
 
@@ -125,8 +130,21 @@ plot_confusion_matrix(
 )
 
 
+# -----------------------------
+# Figure 5: NLI confusion matrix
+# -----------------------------
+nli_confusion_df = pd.read_csv(nli_confusion_file, index_col=0)
+
+plot_confusion_matrix(
+    confusion_df=nli_confusion_df,
+    title="Sentence-Level NLI Verifier Confusion Matrix",
+    output_path=figures_dir / "nli_confusion_matrix.png",
+)
+
+
 print("Figures created successfully:")
 print("results/figures/method_accuracy_comparison.png")
 print("results/figures/error_category_distribution.png")
 print("results/figures/sentence_level_confusion_matrix.png")
 print("results/figures/full_response_confusion_matrix.png")
+print("results/figures/nli_confusion_matrix.png")

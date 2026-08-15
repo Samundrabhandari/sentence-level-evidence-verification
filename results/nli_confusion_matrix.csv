@@ -1,0 +1,4 @@
+,Predicted Supported,Predicted Unsupported,Predicted Contradicted
+Actual Supported,30,3,0
+Actual Unsupported,2,7,4
+Actual Contradicted,0,3,9

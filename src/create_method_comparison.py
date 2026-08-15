@@ -6,8 +6,8 @@ def read_accuracy(report_df):
     Read accuracy from a sklearn classification_report CSV.
     """
     if "accuracy" in report_df.index:
-        # sklearn stores accuracy differently depending on output format
         row = report_df.loc["accuracy"]
+
         for col in ["precision", "recall", "f1-score"]:
             if col in row and pd.notna(row[col]):
                 return float(row[col])
@@ -31,7 +31,8 @@ def summarize_method(
     method_name,
     unit,
     report_file,
-    predictions_file
+    predictions_file,
+    correct_column="correct"
 ):
     """
     Create one summary row for a verification method.
@@ -41,8 +42,8 @@ def summarize_method(
 
     total_examples = len(predictions_df)
 
-    if "correct" in predictions_df.columns:
-        correct_predictions = int(predictions_df["correct"].sum())
+    if correct_column in predictions_df.columns:
+        correct_predictions = int(predictions_df[correct_column].sum())
         errors = total_examples - correct_predictions
         accuracy = correct_predictions / total_examples
     else:
@@ -57,12 +58,19 @@ def summarize_method(
         "correct_predictions": correct_predictions,
         "errors": errors,
         "accuracy": accuracy,
+
         "supported_precision": get_metric(report_df, "Supported", "precision"),
         "supported_recall": get_metric(report_df, "Supported", "recall"),
         "supported_f1": get_metric(report_df, "Supported", "f1-score"),
+
         "unsupported_precision": get_metric(report_df, "Unsupported", "precision"),
         "unsupported_recall": get_metric(report_df, "Unsupported", "recall"),
         "unsupported_f1": get_metric(report_df, "Unsupported", "f1-score"),
+
+        "contradicted_precision": get_metric(report_df, "Contradicted", "precision"),
+        "contradicted_recall": get_metric(report_df, "Contradicted", "recall"),
+        "contradicted_f1": get_metric(report_df, "Contradicted", "f1-score"),
+
         "macro_precision": get_metric(report_df, "macro avg", "precision"),
         "macro_recall": get_metric(report_df, "macro avg", "recall"),
         "macro_f1": get_metric(report_df, "macro avg", "f1-score"),
@@ -72,23 +80,34 @@ def summarize_method(
     return summary
 
 
-sentence_level_summary = summarize_method(
-    method_name="Sentence-level semantic similarity baseline",
-    unit="sentence",
-    report_file="results/evaluation_report.csv",
-    predictions_file="results/evaluated_predictions.csv"
-)
-
 full_response_summary = summarize_method(
     method_name="Full-response semantic similarity baseline",
     unit="full_response",
     report_file="results/full_response_evaluation_report.csv",
-    predictions_file="results/full_response_baseline_results.csv"
+    predictions_file="results/full_response_baseline_results.csv",
+    correct_column="correct"
+)
+
+sentence_level_summary = summarize_method(
+    method_name="Sentence-level semantic similarity baseline",
+    unit="sentence",
+    report_file="results/evaluation_report.csv",
+    predictions_file="results/evaluated_predictions.csv",
+    correct_column="correct"
+)
+
+nli_summary = summarize_method(
+    method_name="Sentence-level NLI verifier",
+    unit="sentence",
+    report_file="results/nli_evaluation_report.csv",
+    predictions_file="results/nli_verification_results.csv",
+    correct_column="nli_correct"
 )
 
 comparison_df = pd.DataFrame([
     full_response_summary,
-    sentence_level_summary
+    sentence_level_summary,
+    nli_summary
 ])
 
 output_file = "results/method_comparison.csv"
