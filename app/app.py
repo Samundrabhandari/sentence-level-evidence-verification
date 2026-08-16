@@ -1,242 +1,283 @@
-import time
-from urllib.parse import quote
+import os
 
 import requests
 import spacy
 import streamlit as st
+from openai import OpenAI
 from sentence_transformers import SentenceTransformer, util
 from transformers import pipeline
 
 
 # -----------------------------
-# App settings
+# Page setup
 # -----------------------------
-SIMILARITY_THRESHOLD = 0.50
-NLI_CONFIDENCE_THRESHOLD = 0.50
-
-SIMILARITY_MODEL_NAME = "all-MiniLM-L6-v2"
-NLI_MODEL_NAME = "facebook/bart-large-mnli"
-
-HEADERS = {
-    "User-Agent": "VeriClaim/1.0 student research demo"
-}
+st.set_page_config(
+    page_title="VeriClaim",
+    page_icon="🔎",
+    layout="wide",
+)
 
 
 # -----------------------------
-# Example inputs
-# -----------------------------
-EXAMPLES = {
-    "Jupiter example: topical similarity can miss contradiction": {
-        "question": "What is the largest planet in the Solar System?",
-        "ai_answer": (
-            "Jupiter is the largest planet in the Solar System. "
-            "It is a gas giant. "
-            "Jupiter is smaller than Earth."
-        ),
-        "evidence_query": "Jupiter",
-    },
-    "Alexander Graham Bell example": {
-        "question": "Who invented the telephone?",
-        "ai_answer": (
-            "Alexander Graham Bell is widely credited with inventing the telephone. "
-            "He received a patent in 1876. "
-            "He was born in Italy."
-        ),
-        "evidence_query": "Alexander Graham Bell",
-    },
-    "DNA example: unsupported biological claim": {
-        "question": "What is DNA?",
-        "ai_answer": (
-            "DNA stands for deoxyribonucleic acid. "
-            "It carries genetic information in living organisms. "
-            "DNA is made of amino acids."
-        ),
-        "evidence_query": "DNA",
-    },
-    "Mount Everest example: location error": {
-        "question": "What is the tallest mountain above sea level?",
-        "ai_answer": (
-            "Mount Everest is the tallest mountain above sea level. "
-            "It is located in the Himalayas. "
-            "Mount Everest is located in South America."
-        ),
-        "evidence_query": "Mount Everest",
-    },
-    "Custom input": {
-        "question": "",
-        "ai_answer": "",
-        "evidence_query": "",
-    },
-}
-
-
-# -----------------------------
-# Cached models
+# Cached model loading
 # -----------------------------
 @st.cache_resource
 def load_spacy_model():
     """
-    Load spaCy English model once and reuse it.
+    Load spaCy sentence splitter.
+    Falls back to a blank English sentencizer if the small English model is unavailable.
     """
-    return spacy.load("en_core_web_sm")
+    try:
+        return spacy.load("en_core_web_sm")
+    except OSError:
+        nlp = spacy.blank("en")
+        nlp.add_pipe("sentencizer")
+        return nlp
 
 
 @st.cache_resource
 def load_similarity_model():
     """
-    Load sentence-transformer model once and reuse it.
+    Load sentence-transformer model for semantic similarity diagnostic score.
     """
-    return SentenceTransformer(SIMILARITY_MODEL_NAME)
+    return SentenceTransformer("all-MiniLM-L6-v2")
 
 
 @st.cache_resource
 def load_nli_model():
     """
-    Load Natural Language Inference model once and reuse it.
-
-    NLI compares:
-    - premise: retrieved evidence
-    - hypothesis: claim
-
-    It predicts:
-    - entailment
-    - contradiction
-    - neutral
+    Load Natural Language Inference model.
+    This model predicts entailment, contradiction, or neutral.
     """
     return pipeline(
         "text-classification",
-        model=NLI_MODEL_NAME,
-        tokenizer=NLI_MODEL_NAME,
+        model="facebook/bart-large-mnli",
+        tokenizer="facebook/bart-large-mnli",
         top_k=None,
     )
 
 
+nlp = load_spacy_model()
+similarity_model = load_similarity_model()
+nli_classifier = load_nli_model()
+
+
 # -----------------------------
-# Core functions
+# OpenAI helper functions
+# -----------------------------
+def get_openai_api_key():
+    """
+    Read OpenAI API key from Streamlit secrets or environment variable.
+    This keeps the key outside GitHub code.
+    """
+    try:
+        api_key = st.secrets.get("OPENAI_API_KEY", None)
+    except Exception:
+        api_key = None
+
+    if not api_key:
+        api_key = os.getenv("OPENAI_API_KEY")
+
+    return api_key
+
+
+def generate_ai_answer(question):
+    """
+    Generate a short AI answer using the OpenAI API.
+    """
+    api_key = get_openai_api_key()
+
+    if not api_key:
+        st.error(
+            "OpenAI API key is not configured. Add OPENAI_API_KEY in Streamlit secrets."
+        )
+        return ""
+
+    client = OpenAI(api_key=api_key)
+
+    prompt = f"""
+Answer the following factual question in 2 to 3 short sentences.
+
+Rules:
+- Keep the answer factual and concise.
+- Do not use bullet points.
+- Do not mention that you are an AI.
+- Do not include citations.
+- Avoid long explanations.
+
+Question:
+{question}
+"""
+
+    try:
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt,
+            max_output_tokens=160,
+        )
+
+        return response.output_text.strip()
+
+    except Exception as error:
+        st.error(f"OpenAI answer generation failed: {error}")
+        return ""
+
+
+def generate_evidence_query(question, generated_answer):
+    """
+    Generate a short Wikipedia search query automatically.
+
+    The query uses the user's question and the generated answer.
+    This helps the app choose a useful Wikipedia page without requiring
+    the user to manually enter an evidence query.
+    """
+    api_key = get_openai_api_key()
+
+    if not api_key:
+        st.error(
+            "OpenAI API key is not configured. Add OPENAI_API_KEY in Streamlit secrets."
+        )
+        return ""
+
+    client = OpenAI(api_key=api_key)
+
+    prompt = f"""
+Create the best short Wikipedia search query for verifying this generated answer.
+
+Rules:
+- Return only the search query.
+- Do not write a sentence.
+- Do not add quotation marks.
+- Use the main entity, person, place, object, event, or topic.
+- Keep it under 8 words.
+
+Question:
+{question}
+
+Generated answer:
+{generated_answer}
+"""
+
+    try:
+        response = client.responses.create(
+            model="gpt-4.1-mini",
+            input=prompt,
+            max_output_tokens=40,
+        )
+
+        return response.output_text.strip()
+
+    except Exception as error:
+        st.error(f"Evidence query generation failed: {error}")
+        return ""
+
+
+# -----------------------------
+# Verification helper functions
 # -----------------------------
 def split_into_sentences(text):
     """
-    Split an AI-generated answer into sentence-level claims.
+    Split an answer into sentence-level claims.
     """
-    nlp = load_spacy_model()
     doc = nlp(text)
-
     sentences = []
 
-    for sentence in doc.sents:
-        clean_sentence = sentence.text.strip()
-        if clean_sentence:
-            sentences.append(clean_sentence)
+    for sent in doc.sents:
+        sentence = sent.text.strip()
+        if sentence:
+            sentences.append(sentence)
 
     return sentences
 
 
-def get_json_from_url(url, params=None):
+def retrieve_wikipedia_evidence(query):
     """
-    Safely request JSON data from Wikipedia.
+    Retrieve a Wikipedia summary for the given evidence query.
     """
-    try:
-        response = requests.get(
-            url,
-            params=params,
-            headers=HEADERS,
-            timeout=15,
-        )
+    if not query.strip():
+        return "", "No evidence query provided."
 
-        if response.status_code == 200:
-            return response.json()
-
-        if response.status_code == 429:
-            time.sleep(5)
-            return None
-
-        return None
-
-    except requests.RequestException:
-        return None
-
-
-@st.cache_data(show_spinner=False)
-def search_wikipedia(query):
-    """
-    Search Wikipedia and return the top page title.
-    """
     search_url = "https://en.wikipedia.org/w/api.php"
 
-    params = {
+    search_params = {
         "action": "query",
         "list": "search",
         "srsearch": query,
         "format": "json",
-        "srlimit": 1,
+        "utf8": 1,
     }
 
-    data = get_json_from_url(search_url, params=params)
+    try:
+        search_response = requests.get(
+            search_url,
+            params=search_params,
+            timeout=10,
+            headers={"User-Agent": "VeriClaim research demo"},
+        )
+        search_response.raise_for_status()
+        search_data = search_response.json()
 
-    if data is None:
-        return None
+        search_results = search_data.get("query", {}).get("search", [])
 
-    results = data.get("query", {}).get("search", [])
+        if not search_results:
+            return "", "No Wikipedia page found."
 
-    if len(results) == 0:
-        return None
+        page_title = search_results[0]["title"]
 
-    return results[0]["title"]
+        summary_url = (
+            "https://en.wikipedia.org/api/rest_v1/page/summary/"
+            + page_title.replace(" ", "_")
+        )
+
+        summary_response = requests.get(
+            summary_url,
+            timeout=10,
+            headers={"User-Agent": "VeriClaim research demo"},
+        )
+        summary_response.raise_for_status()
+        summary_data = summary_response.json()
+
+        evidence = summary_data.get("extract", "")
+
+        if not evidence:
+            return page_title, "No summary evidence found."
+
+        return page_title, evidence
+
+    except Exception as error:
+        return "", f"Evidence retrieval failed: {error}"
 
 
-@st.cache_data(show_spinner=False)
-def get_wikipedia_summary(title):
+def calculate_similarity(claim, evidence):
     """
-    Retrieve a Wikipedia page summary.
+    Calculate semantic similarity between claim and evidence.
+    This is used only as a diagnostic score, not the final verdict.
     """
-    if title is None:
-        return "", ""
+    if not evidence.strip():
+        return 0.0
 
-    safe_title = quote(title.replace(" ", "_"))
-    summary_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{safe_title}"
+    claim_embedding = similarity_model.encode(claim, convert_to_tensor=True)
+    evidence_embedding = similarity_model.encode(evidence, convert_to_tensor=True)
 
-    data = get_json_from_url(summary_url)
+    similarity_score = util.cos_sim(claim_embedding, evidence_embedding).item()
 
-    if data is None:
-        return "", ""
-
-    evidence = data.get("extract", "")
-    page_url = data.get("content_urls", {}).get("desktop", {}).get("page", "")
-
-    return evidence, page_url
+    return similarity_score
 
 
-def calculate_similarity(sentence, evidence):
+def classify_with_nli(claim, evidence):
     """
-    Calculate cosine similarity between a sentence and retrieved evidence.
+    Classify whether evidence entails, contradicts, or is neutral toward a claim.
     """
-    model = load_similarity_model()
+    if not evidence.strip():
+        return "neutral", {"entailment": 0.0, "contradiction": 0.0, "neutral": 1.0}
 
-    sentence_embedding = model.encode(sentence, convert_to_tensor=True)
-    evidence_embedding = model.encode(evidence, convert_to_tensor=True)
-
-    similarity = util.cos_sim(sentence_embedding, evidence_embedding).item()
-
-    return similarity
-
-
-def classify_with_nli(evidence, claim):
-    """
-    Use Natural Language Inference to classify the relationship between evidence and claim.
-
-    Evidence = premise
-    Claim = hypothesis
-    """
-    classifier = load_nli_model()
-
-    result = classifier(
+    result = nli_classifier(
         {
             "text": evidence,
             "text_pair": claim,
         }
     )
 
-    # Different transformers versions may return slightly different nesting.
     if len(result) > 0 and isinstance(result[0], list):
         result = result[0]
 
@@ -247,97 +288,32 @@ def classify_with_nli(evidence, claim):
         score = float(item["score"])
         scores[label] = score
 
-    entailment_score = scores.get("entailment", 0.0)
-    contradiction_score = scores.get("contradiction", 0.0)
-    neutral_score = scores.get("neutral", 0.0)
-
     best_label = max(scores, key=scores.get)
-    best_score = scores[best_label]
 
-    if best_label == "entailment" and best_score >= NLI_CONFIDENCE_THRESHOLD:
-        verdict = "SUPPORTED"
-    elif best_label == "contradiction" and best_score >= NLI_CONFIDENCE_THRESHOLD:
-        verdict = "CONTRADICTED"
-    else:
-        verdict = "INSUFFICIENT EVIDENCE"
-
-    return {
-        "verdict": verdict,
-        "best_label": best_label,
-        "confidence": round(best_score, 4),
-        "entailment_score": round(entailment_score, 4),
-        "contradiction_score": round(contradiction_score, 4),
-        "neutral_score": round(neutral_score, 4),
-    }
+    return best_label, scores
 
 
-def verify_answer(ai_answer, evidence_query):
+def get_final_verdict(nli_label, nli_scores, confidence_threshold):
     """
-    Run the verification workflow for one AI-generated answer.
+    Convert NLI model output into VeriClaim labels.
     """
-    sentences = split_into_sentences(ai_answer)
+    confidence = nli_scores.get(nli_label, 0.0)
 
-    wiki_title = search_wikipedia(evidence_query)
-    evidence, wiki_url = get_wikipedia_summary(wiki_title)
+    if confidence < confidence_threshold:
+        return "INSUFFICIENT EVIDENCE"
 
-    results = []
+    if nli_label == "entailment":
+        return "SUPPORTED"
 
-    for sentence in sentences:
-        if evidence.strip() == "":
-            similarity_score = 0.0
-            nli_result = {
-                "verdict": "INSUFFICIENT EVIDENCE",
-                "best_label": "no_evidence",
-                "confidence": 0.0,
-                "entailment_score": 0.0,
-                "contradiction_score": 0.0,
-                "neutral_score": 0.0,
-            }
-        else:
-            similarity_score = calculate_similarity(sentence, evidence)
-            nli_result = classify_with_nli(evidence, sentence)
+    if nli_label == "contradiction":
+        return "CONTRADICTED"
 
-        results.append(
-            {
-                "claim": sentence,
-                "verdict": nli_result["verdict"],
-                "nli_best_label": nli_result["best_label"],
-                "nli_confidence": nli_result["confidence"],
-                "entailment_score": nli_result["entailment_score"],
-                "contradiction_score": nli_result["contradiction_score"],
-                "neutral_score": nli_result["neutral_score"],
-                "similarity_score": round(similarity_score, 4),
-                "wiki_title": wiki_title,
-                "evidence": evidence,
-                "wiki_url": wiki_url,
-            }
-        )
-
-    return results
+    return "INSUFFICIENT EVIDENCE"
 
 
-def load_selected_example():
+def show_verdict_box(verdict):
     """
-    Load the selected example into the input fields.
-    """
-    selected_example = st.session_state.selected_example
-
-    if selected_example == "Custom input":
-        st.session_state.question = ""
-        st.session_state.ai_answer = ""
-        st.session_state.evidence_query = ""
-        return
-
-    example = EXAMPLES[selected_example]
-
-    st.session_state.question = example["question"]
-    st.session_state.ai_answer = example["ai_answer"]
-    st.session_state.evidence_query = example["evidence_query"]
-
-
-def display_verdict(verdict):
-    """
-    Display verdict using Streamlit status boxes.
+    Display verdict with a clear color.
     """
     if verdict == "SUPPORTED":
         st.success("SUPPORTED")
@@ -347,25 +323,121 @@ def display_verdict(verdict):
         st.warning("INSUFFICIENT EVIDENCE")
 
 
+def verify_answer(answer, evidence_query, nli_confidence_threshold):
+    """
+    Full verification pipeline:
+    answer -> sentence claims -> Wikipedia evidence -> similarity + NLI -> verdicts
+    """
+    claims = split_into_sentences(answer)
+
+    if not claims:
+        st.warning("No sentence-level claims found.")
+        return
+
+    page_title, evidence = retrieve_wikipedia_evidence(evidence_query)
+
+    st.subheader("Retrieved Evidence")
+
+    if page_title:
+        st.write(f"**Wikipedia page:** {page_title}")
+
+    st.write(evidence)
+
+    st.divider()
+
+    st.subheader("Sentence-Level Verification Results")
+
+    for index, claim in enumerate(claims, start=1):
+        with st.container(border=True):
+            st.markdown(f"### Claim {index}")
+            st.write(claim)
+
+            similarity_score = calculate_similarity(claim, evidence)
+
+            nli_label, nli_scores = classify_with_nli(claim, evidence)
+
+            verdict = get_final_verdict(
+                nli_label=nli_label,
+                nli_scores=nli_scores,
+                confidence_threshold=nli_confidence_threshold,
+            )
+
+            show_verdict_box(verdict)
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.metric(
+                    "NLI confidence",
+                    f"{nli_scores.get(nli_label, 0.0):.4f}",
+                )
+
+            with col2:
+                st.metric(
+                    "Semantic similarity",
+                    f"{similarity_score:.4f}",
+                )
+
+            with col3:
+                st.metric(
+                    "NLI label",
+                    nli_label,
+                )
+
+            with st.expander("View NLI scores"):
+                st.json(nli_scores)
+
+            with st.expander("View evidence used"):
+                st.write(evidence)
+
+
 # -----------------------------
-# Streamlit UI
+# Sidebar
 # -----------------------------
-st.set_page_config(
-    page_title="VeriClaim",
-    page_icon="🔎",
-    layout="wide",
+st.sidebar.header("Settings")
+
+semantic_similarity_threshold = st.sidebar.number_input(
+    "Semantic similarity threshold:",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.5,
+    step=0.05,
 )
 
+nli_confidence_threshold = st.sidebar.number_input(
+    "NLI confidence threshold:",
+    min_value=0.0,
+    max_value=1.0,
+    value=0.5,
+    step=0.05,
+)
+
+st.sidebar.markdown("**Main verdicts:**")
+st.sidebar.markdown("- SUPPORTED")
+st.sidebar.markdown("- CONTRADICTED")
+st.sidebar.markdown("- INSUFFICIENT EVIDENCE")
+
+st.sidebar.info(
+    "This version uses Natural Language Inference for the main verdict "
+    "and semantic similarity as a diagnostic score."
+)
+
+
+# -----------------------------
+# Main UI
+# -----------------------------
 st.title("🔎 VeriClaim")
+
 st.subheader("Evidence-Grounded Verification for LLM-Generated Claims")
 
-st.markdown(
-    """
-    This demo checks whether individual sentences in an AI-generated answer are
-    supported, contradicted, or not sufficiently supported by retrieved Wikipedia evidence.
+st.write(
+    "This demo checks whether individual sentences in an AI-generated answer are "
+    "supported, contradicted, or not sufficiently supported by retrieved Wikipedia evidence."
+)
 
-    **Important:** This tool does not determine absolute truth. It evaluates claims only against the retrieved evidence.
-    """
+st.warning(
+    "Important: This tool does not determine absolute truth. "
+    "It evaluates claims only against the retrieved evidence."
 )
 
 st.info(
@@ -374,161 +446,137 @@ st.info(
     "INSUFFICIENT EVIDENCE means the retrieved evidence does not clearly support or contradict the claim."
 )
 
-with st.sidebar:
-    st.header("Settings")
-
-    st.write("Semantic similarity threshold:")
-    st.code(str(SIMILARITY_THRESHOLD))
-
-    st.write("NLI confidence threshold:")
-    st.code(str(NLI_CONFIDENCE_THRESHOLD))
-
-    st.markdown(
-        """
-        Main verdicts:
-
-        - **SUPPORTED**
-        - **CONTRADICTED**
-        - **INSUFFICIENT EVIDENCE**
-
-        This version uses Natural Language Inference for the main verdict and semantic similarity as a diagnostic score.
-        """
-    )
-
 st.divider()
 
-# Initialize session state
-if "selected_example" not in st.session_state:
-    st.session_state.selected_example = "Jupiter example: topical similarity can miss contradiction"
+st.header("Try VeriClaim")
 
-if "question" not in st.session_state:
-    st.session_state.question = EXAMPLES[st.session_state.selected_example]["question"]
-
-if "ai_answer" not in st.session_state:
-    st.session_state.ai_answer = EXAMPLES[st.session_state.selected_example]["ai_answer"]
-
-if "evidence_query" not in st.session_state:
-    st.session_state.evidence_query = EXAMPLES[st.session_state.selected_example]["evidence_query"]
-
-
-st.subheader("Try an Example or Enter Your Own")
-
-st.selectbox(
-    "Choose an example",
-    options=list(EXAMPLES.keys()),
-    key="selected_example",
-    on_change=load_selected_example,
+input_mode = st.radio(
+    "Choose input mode",
+    [
+        "Verify a pasted AI answer",
+        "Generate an AI answer, then verify it",
+    ],
 )
 
-question = st.text_input(
-    "Question",
-    key="question",
-)
 
-ai_answer = st.text_area(
-    "AI-generated answer to verify",
-    key="ai_answer",
-    height=130,
-)
+# -----------------------------
+# Mode 1: Verify pasted answer
+# -----------------------------
+if input_mode == "Verify a pasted AI answer":
+    examples = {
+        "Jupiter example: topical similarity can miss contradiction": {
+            "question": "What is the largest planet in the Solar System?",
+            "answer": (
+                "Jupiter is the largest planet in the Solar System. "
+                "It is a gas giant. "
+                "Jupiter is smaller than Earth."
+            ),
+            "evidence_query": "Jupiter",
+        },
+        "Mount Everest example: contradiction detection": {
+            "question": "Where is Mount Everest located?",
+            "answer": (
+                "Mount Everest is Earth's highest mountain above sea level. "
+                "It lies in the Himalayas. "
+                "Mount Everest is located in South America."
+            ),
+            "evidence_query": "Mount Everest",
+        },
+        "DNA example: unsupported biological claim": {
+            "question": "What is DNA?",
+            "answer": (
+                "DNA carries genetic information in living organisms. "
+                "DNA is made of amino acids."
+            ),
+            "evidence_query": "DNA",
+        },
+        "Custom input": {
+            "question": "",
+            "answer": "",
+            "evidence_query": "",
+        },
+    }
 
-evidence_query = st.text_input(
-    "Evidence query for Wikipedia",
-    key="evidence_query",
-)
+    selected_example = st.selectbox(
+        "Choose an example",
+        list(examples.keys()),
+    )
 
-verify_button = st.button("Verify Answer", type="primary")
+    default_question = examples[selected_example]["question"]
+    default_answer = examples[selected_example]["answer"]
+    default_evidence_query = examples[selected_example]["evidence_query"]
 
-if verify_button:
-    if ai_answer.strip() == "":
-        st.error("Please enter an AI-generated answer.")
-    elif evidence_query.strip() == "":
-        st.error("Please enter an evidence query.")
-    else:
-        with st.spinner("Retrieving evidence and running NLI verification..."):
-            verification_results = verify_answer(ai_answer, evidence_query)
+    question = st.text_input(
+        "Question",
+        value=default_question,
+    )
 
-        if len(verification_results) == 0:
-            st.warning("No sentences were found in the answer.")
+    answer = st.text_area(
+        "AI-generated answer to verify",
+        value=default_answer,
+        height=140,
+    )
+
+    evidence_query = st.text_input(
+        "Evidence query for Wikipedia",
+        value=default_evidence_query,
+    )
+
+    if st.button("Verify Answer"):
+        if not answer.strip():
+            st.warning("Please enter an AI-generated answer to verify.")
+        elif not evidence_query.strip():
+            st.warning("Please enter an evidence query.")
         else:
-            supported_count = sum(
-                1 for item in verification_results
-                if item["verdict"] == "SUPPORTED"
+            verify_answer(
+                answer=answer,
+                evidence_query=evidence_query,
+                nli_confidence_threshold=nli_confidence_threshold,
             )
 
-            contradicted_count = sum(
-                1 for item in verification_results
-                if item["verdict"] == "CONTRADICTED"
-            )
 
-            insufficient_count = sum(
-                1 for item in verification_results
-                if item["verdict"] == "INSUFFICIENT EVIDENCE"
-            )
+# -----------------------------
+# Mode 2: Generate answer, auto-query, verify
+# -----------------------------
+else:
+    st.subheader("Ask a Question")
 
-            total_claims = len(verification_results)
+    question = st.text_input(
+        "Enter a factual question",
+        value="",
+        placeholder="Example: What is Jupiter?",
+    )
 
-            st.success("Verification complete.")
+    st.caption(
+        "This mode uses the OpenAI API to generate a short answer. "
+        "Then VeriClaim automatically selects a Wikipedia evidence query and verifies the generated answer."
+    )
 
-            col1, col2, col3, col4 = st.columns(4)
+    if st.button("Generate Answer and Verify"):
+        if not question.strip():
+            st.warning("Please enter a question.")
+        else:
+            with st.spinner("Generating AI answer..."):
+                generated_answer = generate_ai_answer(question)
 
-            col1.metric("Sentence-level claims", total_claims)
-            col2.metric("Supported", supported_count)
-            col3.metric("Contradicted", contradicted_count)
-            col4.metric("Insufficient evidence", insufficient_count)
-
-            st.warning(
-                "Important: These verdicts are evidence-grounded, not absolute truth judgments. "
-                "If the retrieved Wikipedia evidence is incomplete or wrong, the verdict may also be unreliable."
-            )
-
-            st.divider()
-
-            first_result = verification_results[0]
-
-            st.subheader("Retrieved Evidence")
-
-            st.write("Wikipedia page:", first_result["wiki_title"])
-
-            if first_result["wiki_url"]:
-                st.write(first_result["wiki_url"])
-
-            if first_result["evidence"]:
-                st.info(first_result["evidence"])
-            else:
-                st.warning("No Wikipedia evidence was retrieved.")
-
-            st.divider()
-
-            st.subheader("Sentence-Level Verification Results")
-
-            for index, item in enumerate(verification_results, start=1):
-                with st.container(border=True):
-                    st.markdown(f"### Claim {index}")
-                    st.write(item["claim"])
-
-                    display_verdict(item["verdict"])
-
-                    metric_col1, metric_col2, metric_col3 = st.columns(3)
-
-                    metric_col1.metric(
-                        "NLI confidence",
-                        item["nli_confidence"],
+            if generated_answer:
+                with st.spinner("Selecting Wikipedia evidence query..."):
+                    evidence_query = generate_evidence_query(
+                        question=question,
+                        generated_answer=generated_answer,
                     )
 
-                    metric_col2.metric(
-                        "Semantic similarity",
-                        item["similarity_score"],
+                if evidence_query:
+                    st.subheader("Generated AI Answer")
+                    st.write(generated_answer)
+
+                    st.subheader("Automatically Selected Evidence Query")
+                    st.code(evidence_query)
+
+                    st.divider()
+
+                    verify_answer(
+                        answer=generated_answer,
+                        evidence_query=evidence_query,
+                        nli_confidence_threshold=nli_confidence_threshold,
                     )
-
-                    metric_col3.metric(
-                        "NLI label",
-                        item["nli_best_label"],
-                    )
-
-                    with st.expander("View NLI scores"):
-                        st.write("Entailment score:", item["entailment_score"])
-                        st.write("Contradiction score:", item["contradiction_score"])
-                        st.write("Neutral score:", item["neutral_score"])
-
-                    with st.expander("View evidence used"):
-                        st.write(item["evidence"])
