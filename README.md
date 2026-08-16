@@ -1,4 +1,4 @@
-# Sentence-Level Evidence Verification for AI-Generated Responses
+# VeriClaim: Evidence-Grounded Verification for LLM-Generated Claims
 ## Live Demo
 
 Try the deployed app here:
