@@ -503,6 +503,18 @@ The app then:
 4. shows whether each claim is Supported, Contradicted, or has Insufficient Evidence,
 5. displays NLI confidence scores and semantic similarity scores.
 
+## Application Modes
+
+VeriClaim supports two usage modes:
+
+1. **Verify a pasted AI answer**  
+   Users can paste an AI-generated answer, provide a Wikipedia evidence query, and receive sentence-level verification results.
+
+2. **Generate an AI answer, then verify it**  
+   Users can enter only a factual question. The app uses the OpenAI API to generate a short answer, automatically selects a Wikipedia evidence query, retrieves evidence, and verifies each sentence-level claim using Natural Language Inference.
+
+The OpenAI API key is stored securely using Streamlit secrets and is not included in the GitHub repository.
+
 ### Run the app
 
 From the main project folder, run:
