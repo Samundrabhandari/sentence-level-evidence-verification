@@ -1,12 +1,3 @@
----
-title: VeriClaim
-emoji: 🔍
-colorFrom: blue
-colorTo: green
-sdk: streamlit
-app_file: app.py
-pinned: false
----
 # Sentence-Level Evidence Verification for AI-Generated Responses
 
 ## Overview
