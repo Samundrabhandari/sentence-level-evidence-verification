@@ -1,4 +1,9 @@
 # Sentence-Level Evidence Verification for AI-Generated Responses
+## Live Demo
+
+Try the deployed app here:
+
+https://vericlaim-ai.streamlit.app
 
 ## Overview
 
