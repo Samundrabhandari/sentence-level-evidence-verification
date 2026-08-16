@@ -24,3 +24,4 @@ models/
 # Temporary files
 *.tmp
 *.log
+.streamlit/secrets.toml
